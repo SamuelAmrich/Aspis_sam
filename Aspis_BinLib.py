@@ -307,6 +307,14 @@ class BinLib:
         min_index = np.argmin(distances)
         return np.array([lat_bins[min_index], lon_bins[min_index]])
     
+
     
+    def calc_close_bin_faster(self, lat_bins_nonunique, lat_bins_unique, correspond_lon_bins, lat, lon):
+        closest_lat = np.argmin(np.abs(lat_bins_unique-lat))
+        temp_lat_bins = np.array([lat_bins_unique[closest_lat]]*len(correspond_lon_bins[closest_lat]))
+        lat_bins, lon_bins = self.calc_near_bin(temp_lat_bins, np.array(correspond_lon_bins[closest_lat]), lat, lon)
+        return lat_bins, lon_bins
+
+
 # if __name__ == '__main__':
 #     pass
