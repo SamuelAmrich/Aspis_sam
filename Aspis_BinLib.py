@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import plotly.express as px
 
 class BinLib:
     def __init__(self):
@@ -114,7 +115,7 @@ class BinLib:
     
     
     def calc_dis_up(self, Elevation_obs, input_unit="Rad"): # ✓
-        if input_unit=="Deg": Elevation=np.radians(Elevation_obs)
+        if input_unit=="Deg": Elevation_obs=np.radians(Elevation_obs)
         dis_up = (np.sin(self.calc_gamma_up_n(Elevation_obs, input_unit="Rad", output_unit="Rad"))/np.cos(Elevation_obs))*self.R_up
         dis_up[Elevation_obs==np.pi/2] = self.R_up - self.R_down
         return dis_up
@@ -321,7 +322,7 @@ class BinLib:
     
     def add_latlon(self, dataframe, number): # ✓  
         dataframe['lat'] = np.zeros(dataframe.shape[0]).astype(object)
-
+        
         for line in range(dataframe['lat'].shape[0]):
             dataframe.loc[:, 'lat'][line] = np.zeros(number)
 
@@ -337,6 +338,7 @@ class BinLib:
         bins_names = ['Latitude_bins', 'Longitude_bins']
         bins_file = "Bins_equidistant.txt"
         bins = pd.read_table(bins_file, sep='\t', names=bins_names, skipinitialspace=True)
+        lat_bin, lon_bin = np.loadtxt("Bins_equidistant.txt", delimiter='\t', usecols=(0, 1), unpack=True)
         unique_lat = np.unique(np.array((bins["Latitude_bins"])))
         correspond_lon = []
         for i in range(len(unique_lat)):
@@ -344,15 +346,15 @@ class BinLib:
         for i in range(len(bins)):
             idx = list(unique_lat).index(bins.iloc[i, 0])
             correspond_lon[idx].append(bins.iloc[i, 1])
-        print(PHI)
         for line in range(dataframe.shape[0]):
-            x_down = binlib.calc_x_down([dataframe['Elevation'][line]], input_unit="Deg")
-            x_up = binlib.calc_x_up([dataframe['Elevation'][line]], input_unit="Deg")
-            x_step = binlib.calc_x([dataframe['Elevation'][line]], input_unit="Deg")/10
-            lat, lon, x = binlib.calc_gnd_geo([dataframe['Elevation'][line]], [dataframe['Azimuth'][line]], np.arange(x_down, x_up, x_step), dataframe['Latitude'][line], dataframe['Longitude'][line])
+            dis_down = self.calc_dis_down([dataframe['Elevation'][line]], input_unit="Deg")
+            dis_up = self.calc_dis_up([dataframe['Elevation'][line]], input_unit="Deg")
+            dis_step = self.calc_dis([dataframe['Elevation'][line]], input_unit="Deg")/3
+            lat, lon, dis = self.obs_to_geo([dataframe['Elevation'][line]], [dataframe['Azimuth'][line]], np.arange(dis_down, dis_up, dis_step), dataframe['Latitude'][line], dataframe['Longitude'][line])
+#             print(dis_up)
             for position in range(3):
-                dataframe['lat'][line][position] = binlib.calc_close_bin_faster(PHI, unique_lat, correspond_lon, lat[position], lon[position])[0]
-                dataframe['lon'][line][position] = binlib.calc_close_bin_faster(PHI, unique_lat, correspond_lon, lat[position], lon[position])[1]
+                dataframe['lat'][line][position] = self.calc_close_bin_faster(lat_bin, unique_lat, correspond_lon, lat[position], lon[position])[0]
+                dataframe['lon'][line][position] = self.calc_close_bin_faster(lat_bin, unique_lat, correspond_lon, lat[position], lon[position])[1]
         return dataframe
 
     
@@ -367,7 +369,7 @@ class BinLib:
                 lon_temp = dataframe["lon"][i][j]
                 lat.append(lat_temp)
                 lon.append(lon_temp)
-                value.append(data[name_of_value][i])
+                value.append(dataframe[name_of_value][i])
 
         df = pd.DataFrame(data={name_of_value: value, 'lat': lat, "lon":lon})
         if func=="mean":
