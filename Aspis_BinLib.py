@@ -358,7 +358,7 @@ class BinLib:
         return dataframe
 
     
-    def recalc_dataframe(self, dataframe, name_of_value, func = "mean"): # ✓  
+    def recalc_dataframe_to_map(self, dataframe, name_of_value, func = "mean"): # ✓  
         lat = []
         lon = []
         value = []
@@ -440,6 +440,68 @@ class BinLib:
     #         im1 = img_bytes.save(save_name)
 
         fig.show()
+    
+    
+    def calc_minmax_scale(self, array):
+        return (array - np.min(array)) / (np.max(array) - np.min(array))
+    
+    
+    def show_station_hist(self, dataframe, station, value, log=True):
+        fig, ax = plt.subplots(figsize=(20, 10))
+        ax.hist(dataframe[dataframe["Station"]==station][value], np.arange(0, 1, 0.05), histtype= 'stepfilled', log=log, facecolor='black')
+        ax.set_xlabel('value: ' + value)
+        ax.set_ylabel('Number of')
+        ax.set_title('Histogram of value: ' + value + ", for station: " + station)
+        fig.tight_layout()
+        plt.show()
+        
+    
+    def calc_dataframe_moment(self, dataframe, station, value, func):
+    #     func = max, mean, min, median, per_xx, std
+        arr = dataframe[dataframe["Station"]==station][value]
+        if func == "max":
+            return arr.max()
+        elif func == "min":
+            return arr.min()
+        elif func == "mean":
+            return arr.mean()
+        elif func == "median":
+            return np.percentile(arr, 50)
+        elif func[0:3] == "per":
+            per = float(func.split("_")[1])
+            return np.percentile(arr, per)
+        elif func == "std":
+            return arr.std()
+
+        
+    def calc_remove_outliner(self, dataframe, value, par = 95, mode="up"):
+        if mode == "up": return dataframe[dataframe[value]<np.percentile(dataframe[value], par)]
+        elif mode == "down": return dataframe[dataframe[value]>np.percentile(dataframe[value], par)]
+
+
+    def calc_remove_outliners(self, dataframe, value, par = 95, mode="up"):
+        frames = []
+        stations = list(set(dataframe["Station"]))
+        for station in stations:
+            frame = self.calc_remove_outliner(dataframe[dataframe["Station"]==station], value, par = par, mode=mode)
+            frames.append(frame)
+        result = pd.concat(frames)
+        return result
+
+
+    def calc_normalize_station(self, dataframe, value):
+        return self.calc_minmax_scale(dataframe[value])
+
+
+    def calc_normalize_stations(self, dataframe, value):
+        frames = []
+        stations = list(set(dataframe["Station"]))
+        for station in stations:
+            frame = self.calc_normalize_station(dataframe[dataframe["Station"]==station], value)
+            frames.append(frame)
+        result = pd.concat(frames)
+        return result
+    
     
     
 if __name__ == '__main__':
