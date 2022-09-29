@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import matplotlib.pyplot as plt
 
 class BinLib:
     def __init__(self):
@@ -503,6 +504,25 @@ class BinLib:
         return result
     
     
+    def recalc_dataframe_to_ml(self, dataframe, dataframe_map):
+        lat_bin, lon_bin = np.loadtxt("Bins_equidistant.txt", delimiter='\t', usecols=(0, 1), unpack=True)
+        bins = []
+        for (temp_lat, temp_lon) in zip(lat_bin, lon_bin):
+            bins.append([temp_lat, temp_lon, 0])
+
+        bins_np = np.array(bins)
+        offset = np.where(bins_np[::, 0] == dataframe_map["lat"][0])[0][0]
+        onset = np.where(bins_np[::, 0] == dataframe_map["lat"][len(dataframe_map["lat"])-1])[0][-1]
+
+        for j, line in enumerate(bins[offset:onset+1]):
+            for i in range(dataframe.shape[0]):
+                temp = np.any(dataframe["lat"][i]==line[0]) and np.any(dataframe["lon"][i]==line[1])
+                if temp:
+                    try:
+                        bins[offset+j][2] = pd.concat([bins[offset+j][2], dataframe[i:i+1]])
+                    except:
+                        bins[offset+j][2] = dataframe[i:i+1]
+        return bins
     
 if __name__ == '__main__':
     pass
